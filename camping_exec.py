@@ -2,9 +2,20 @@ import datetime
 import subprocess
 import telegram
 import asyncio
+import time
 
 bot = telegram.Bot("6013591773:AAGQoZ_729cnSwfADgARDH87ZHNLy7V684U")
 telegram_chat_id = 5589934690
+
+start_date = datetime.date(2024, 5, 7)
+end_date = datetime.date(2023, 5, 9)
+
+# Park IDs
+# upper pines 232447
+# lower pines 232450
+# north pines 232449
+# tahoe fallen leaf 232449
+parks = "232769"
 
 # Function to generate a list of weekends (Saturdays) between two dates
 def generate_weekends(start_date, end_date):
@@ -23,29 +34,26 @@ async def send_telegram_message(all_outputs):
     async with bot:
         await bot.send_message(text=all_outputs, chat_id=telegram_chat_id)
 
-start_date = datetime.date(2024, 5, 7)
-end_date = datetime.date(2023, 5, 9)
+def run_script():
+    # Loop through the weekends and run the camping.py script
+    command = f"python3 camping.py --start-date {start_date} --end-date {end_date} --parks {parks}"
+    print(f"Running: {command}")
 
-# Park IDs
-# upper pines 232447
-# lower pines 232450
-# north pines 232449
-# tahoe fallen leaf 232449
-parks = "232769"
+    # Capture the output from the subprocess
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
-# Loop through the weekends and run the camping.py script
-command = f"python3 camping.py --start-date {start_date} --end-date {end_date} --parks {parks}"
-print(f"Running: {command}")
+    print(result.stdout)
+    output = result.stdout
 
-# Capture the output from the subprocess
-result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    if ("0 site(s) available" not in output):
+        # Run the async function to send the Telegram message
+        asyncio.run(send_telegram_message(output))
 
-print(result.stdout)
-output = result.stdout
-
-if ("0 site(s) available" not in output):
-    # Run the async function to send the Telegram message
-    asyncio.run(send_telegram_message(output))
+# Run the script every 5 minutes
+if __name__ == "__main__":
+    while True:
+        run_script()
+        time.sleep(300)  # Sleep for 5 minutes (300 seconds)
 
 
 
